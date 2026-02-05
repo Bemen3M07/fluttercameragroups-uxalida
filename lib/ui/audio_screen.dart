@@ -13,9 +13,13 @@ class AudioScreen extends StatefulWidget {
 class _AudioScreenState extends State<AudioScreen> {
   final AudioService audioService = AudioService();
 
-  final List<AudioModel> audios = [
-    // recomendado: esta ruta suele ser correcta con AssetSource:
-    AudioModel(title: 'Song 1', assetPath: 'audio/song.mp3'),
+  /// Lista real editable de reproducción
+  late List<AudioModel> playlist;
+
+  /// Lista de mp3 precarregados (assets)
+  final List<AudioModel> preloaded = [
+    AudioModel(title: 'Song 1', assetPath: 'audio/song1.mp3'),
+    AudioModel(title: 'Song 2', assetPath: 'audio/song2.mp3'),
   ];
 
   StreamSubscription? _posSub;
@@ -24,12 +28,16 @@ class _AudioScreenState extends State<AudioScreen> {
   @override
   void initState() {
     super.initState();
-    audioService.setPlaylist(audios);
 
-    // refrescar UI mientras suena
+    /// Inicialmente la playlist es la lista de mp3 precarregados
+    playlist = List.from(preloaded);
+    audioService.setPlaylist(playlist);
+
+    /// Refrescar UI mientras suena
     _posSub = audioService.player.onPositionChanged.listen((_) {
       if (mounted) setState(() {});
     });
+
     _durSub = audioService.player.onDurationChanged.listen((_) {
       if (mounted) setState(() {});
     });
@@ -42,6 +50,19 @@ class _AudioScreenState extends State<AudioScreen> {
     super.dispose();
   }
 
+  void addDummySong() {
+    final index = playlist.length + 1;
+
+    setState(() {
+      final song = AudioModel(
+        title: 'Afegida $index',
+        assetPath: preloaded.first.assetPath,
+      );
+      playlist.add(song);
+      audioService.setPlaylist(playlist);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final total = audioService.totalDuration.inSeconds.toDouble();
@@ -51,16 +72,20 @@ class _AudioScreenState extends State<AudioScreen> {
 
     return Column(
       children: [
+        /// MODOS
         SwitchListTile(
           title: const Text('Random'),
           value: audioService.randomMode,
           onChanged: (v) => setState(() => audioService.randomMode = v),
         ),
+
         SwitchListTile(
-          title: const Text('Infinit'),
+          title: const Text('Mode infinit'),
           value: audioService.infiniteMode,
           onChanged: (v) => setState(() => audioService.infiniteMode = v),
         ),
+
+        /// Barra de progreso
         Slider(
           min: 0,
           max: safeMax,
@@ -70,6 +95,8 @@ class _AudioScreenState extends State<AudioScreen> {
             if (mounted) setState(() {});
           },
         ),
+
+        /// Controles
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -89,7 +116,9 @@ class _AudioScreenState extends State<AudioScreen> {
             ),
             IconButton(
               icon: Icon(
-                audioService.isPlaying ? Icons.pause : Icons.play_arrow,
+                audioService.isPlaying
+                    ? Icons.pause
+                    : Icons.play_arrow,
               ),
               onPressed: () async {
                 await audioService.togglePlay();
@@ -112,25 +141,67 @@ class _AudioScreenState extends State<AudioScreen> {
             ),
           ],
         ),
-        Slider(
-          min: 0.5,
-          max: 2.0,
-          value: audioService.speed,
-          onChanged: (v) async {
-            await audioService.setSpeed(v);
-            if (mounted) setState(() {});
-          },
+
+        /// Velocidad
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              const Text('Velocitat'),
+              Expanded(
+                child: Slider(
+                  min: 0.5,
+                  max: 2.0,
+                  divisions: 6,
+                  value: audioService.speed,
+                  label: '${audioService.speed.toStringAsFixed(2)}x',
+                  onChanged: (v) async {
+                    await audioService.setSpeed(v);
+                    if (mounted) setState(() {});
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
+
+        /// Botón para añadir canciones (requisito añadir)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: ElevatedButton.icon(
+            onPressed: addDummySong,
+            icon: const Icon(Icons.add),
+            label: const Text('Afegir cançó a la llista'),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        /// Lista scrollable
         Expanded(
           child: ListView.builder(
-            itemCount: audios.length,
+            itemCount: playlist.length,
             itemBuilder: (_, i) {
               return ListTile(
-                title: Text(audios[i].title),
+                title: Text(playlist[i].title),
+                leading: Icon(
+                  i == audioService.currentIndex
+                      ? Icons.play_arrow
+                      : Icons.music_note,
+                ),
                 onTap: () async {
                   await audioService.playIndex(i);
                   if (mounted) setState(() {});
                 },
+                trailing: IconButton(
+                  tooltip: 'Eliminar',
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {
+                    setState(() {
+                      audioService.removeAt(i);
+                    });
+                  },
+                ),
               );
             },
           ),

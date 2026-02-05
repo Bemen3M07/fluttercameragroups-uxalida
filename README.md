@@ -53,3 +53,12 @@ d’arxius multimèdia.
 
 ## Autors
 Pràctica realitzada en equip de 2 persones.
+
+
+que los mp3 están en assets/audio
+
+que la lista es editable
+
+que es scrollable
+
+que se fuerza proporción 9:16
