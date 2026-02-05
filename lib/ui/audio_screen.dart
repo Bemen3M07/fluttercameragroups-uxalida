@@ -1,162 +1,152 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
-import '../models/audio_model.dart';
+import 'dart:async'; // Para manejar suscripciones a streams
+import 'package:flutter/material.dart'; // Widgets de Flutter
+import '../services/audio_service.dart'; // Servicio de audio
+import '../models/audio_model.dart'; // Modelo de audio
 
-class AudioScreen extends StatefulWidget {
-  const AudioScreen({super.key});
+class AudioScreen extends StatefulWidget { // Pantalla de reproductor de audio
+  const AudioScreen({super.key}); // Constructor
 
   @override
-  State<AudioScreen> createState() => _AudioScreenState();
+  State<AudioScreen> createState() => _AudioScreenState(); // Estado asociado
 }
 
-class _AudioScreenState extends State<AudioScreen> {
-  final AudioService audioService = AudioService();
+class _AudioScreenState extends State<AudioScreen> { // Estado de la pantalla
+  final AudioService audioService = AudioService(); // Servicio central de audio
 
-  /// Lista real editable de reproducción
-  late List<AudioModel> playlist;
+  late List<AudioModel> playlist; // Lista editable de reproducción
 
-  /// Lista de mp3 precarregados (assets)
-  final List<AudioModel> preloaded = [
-    AudioModel(title: 'Song 1', assetPath: 'audio/song1.mp3'),
-    AudioModel(title: 'Song 2', assetPath: 'audio/song2.mp3'),
+  final List<AudioModel> preloaded = [ // Lista de audios precargados
+    AudioModel(title: 'Song 1', assetPath: 'audio/song1.mp3'), // Canción 1
+    AudioModel(title: 'Song 2', assetPath: 'audio/song2.mp3'), // Canción 2
   ];
 
-  StreamSubscription? _posSub;
-  StreamSubscription? _durSub;
+  StreamSubscription? _posSub; // Subscripción a la posición del audio
+  StreamSubscription? _durSub; // Subscripción a la duración del audio
 
   @override
-  void initState() {
-    super.initState();
+  void initState() { // Método que se ejecuta al iniciar la pantalla
+    super.initState(); // Llama al initState padre
 
-    /// Inicialmente la playlist es la lista de mp3 precarregados
-    playlist = List.from(preloaded);
-    audioService.setPlaylist(playlist);
+    playlist = List.from(preloaded); // Inicializa la playlist
+    audioService.setPlaylist(playlist); // Asigna la playlist al servicio
 
-    /// Refrescar UI mientras suena
-    _posSub = audioService.player.onPositionChanged.listen((_) {
-      if (mounted) setState(() {});
+    _posSub = audioService.player.onPositionChanged.listen((_) { // Escucha cambios de posición
+      if (mounted) setState(() {}); // Actualiza la UI si está montada
     });
 
-    _durSub = audioService.player.onDurationChanged.listen((_) {
-      if (mounted) setState(() {});
+    _durSub = audioService.player.onDurationChanged.listen((_) { // Escucha cambios de duración
+      if (mounted) setState(() {}); // Actualiza la UI
     });
   }
 
   @override
-  void dispose() {
-    _posSub?.cancel();
-    _durSub?.cancel();
-    super.dispose();
+  void dispose() { // Método al destruir la pantalla
+    _posSub?.cancel(); // Cancela subscripción de posición
+    _durSub?.cancel(); // Cancela subscripción de duración
+    super.dispose(); // Llama al dispose padre
   }
 
-  void addDummySong() {
-    final index = playlist.length + 1;
+  void addDummySong() { // Añade una canción de prueba
+    final index = playlist.length + 1; // Calcula índice
 
-    setState(() {
-      final song = AudioModel(
-        title: 'Afegida $index',
-        assetPath: preloaded.first.assetPath,
+    setState(() { // Actualiza estado
+      final song = AudioModel( // Crea nuevo modelo
+        title: 'Afegida $index', // Título dinámico
+        assetPath: preloaded.first.assetPath, // Usa asset existente
       );
-      playlist.add(song);
-      audioService.setPlaylist(playlist);
+      playlist.add(song); // Añade a la lista
+      audioService.setPlaylist(playlist); // Actualiza servicio
     });
   }
 
   @override
-  Widget build(BuildContext context) {
-    final total = audioService.totalDuration.inSeconds.toDouble();
-    final pos = audioService.currentPosition.inSeconds.toDouble();
-    final safeMax = total <= 0 ? 1.0 : total;
-    final safeVal = pos.clamp(0.0, safeMax);
+  Widget build(BuildContext context) { // Construye la UI
+    final total = audioService.totalDuration.inSeconds.toDouble(); // Duración total
+    final pos = audioService.currentPosition.inSeconds.toDouble(); // Posición actual
+    final safeMax = total <= 0 ? 1.0 : total; // Evita valores inválidos
+    final safeVal = pos.clamp(0.0, safeMax); // Limita el valor del slider
 
-    return Column(
+    return Column( // Layout vertical
       children: [
-        /// MODOS
-        SwitchListTile(
-          title: const Text('Random'),
-          value: audioService.randomMode,
-          onChanged: (v) => setState(() => audioService.randomMode = v),
+        SwitchListTile( // Switch modo random
+          title: const Text('Random'), // Texto
+          value: audioService.randomMode, // Valor actual
+          onChanged: (v) => setState(() => audioService.randomMode = v), // Cambia estado
         ),
 
-        SwitchListTile(
-          title: const Text('Mode infinit'),
-          value: audioService.infiniteMode,
-          onChanged: (v) => setState(() => audioService.infiniteMode = v),
+        SwitchListTile( // Switch modo infinito
+          title: const Text('Mode infinit'), // Texto
+          value: audioService.infiniteMode, // Valor actual
+          onChanged: (v) => setState(() => audioService.infiniteMode = v), // Cambia estado
         ),
 
-        /// Barra de progreso
-        Slider(
-          min: 0,
-          max: safeMax,
-          value: safeVal,
-          onChanged: (v) async {
-            await audioService.seek(Duration(seconds: v.toInt()));
-            if (mounted) setState(() {});
+        Slider( // Barra de progreso
+          min: 0, // Valor mínimo
+          max: safeMax, // Valor máximo
+          value: safeVal, // Valor actual
+          onChanged: (v) async { // Al mover slider
+            await audioService.seek(Duration(seconds: v.toInt())); // Mueve audio
+            if (mounted) setState(() {}); // Refresca UI
           },
         ),
 
-        /// Controles
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Row( // Controles de reproducción
+          mainAxisAlignment: MainAxisAlignment.center, // Centrado
           children: [
-            IconButton(
+            IconButton( // Retroceder 10s
               icon: const Icon(Icons.replay_10),
               onPressed: () async {
-                await audioService.backward10();
+                await audioService.backward10(); // Retrocede
                 if (mounted) setState(() {});
               },
             ),
-            IconButton(
+            IconButton( // Anterior
               icon: const Icon(Icons.skip_previous),
               onPressed: () async {
-                await audioService.previous();
+                await audioService.previous(); // Canción anterior
                 if (mounted) setState(() {});
               },
             ),
-            IconButton(
+            IconButton( // Play / Pause
               icon: Icon(
-                audioService.isPlaying
-                    ? Icons.pause
-                    : Icons.play_arrow,
+                audioService.isPlaying ? Icons.pause : Icons.play_arrow,
               ),
               onPressed: () async {
-                await audioService.togglePlay();
+                await audioService.togglePlay(); // Alterna reproducción
                 if (mounted) setState(() {});
               },
             ),
-            IconButton(
+            IconButton( // Siguiente
               icon: const Icon(Icons.skip_next),
               onPressed: () async {
-                await audioService.next();
+                await audioService.next(); // Canción siguiente
                 if (mounted) setState(() {});
               },
             ),
-            IconButton(
+            IconButton( // Avanzar 10s
               icon: const Icon(Icons.forward_10),
               onPressed: () async {
-                await audioService.forward10();
+                await audioService.forward10(); // Avanza
                 if (mounted) setState(() {});
               },
             ),
           ],
         ),
 
-        /// Velocidad
-        Padding(
+        Padding( // Control de velocidad
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
-              const Text('Velocitat'),
+              const Text('Velocitat'), // Texto
               Expanded(
                 child: Slider(
-                  min: 0.5,
-                  max: 2.0,
-                  divisions: 6,
-                  value: audioService.speed,
-                  label: '${audioService.speed.toStringAsFixed(2)}x',
+                  min: 0.5, // Velocidad mínima
+                  max: 2.0, // Velocidad máxima
+                  divisions: 6, // Divisiones
+                  value: audioService.speed, // Valor actual
+                  label: '${audioService.speed.toStringAsFixed(2)}x', // Etiqueta
                   onChanged: (v) async {
-                    await audioService.setSpeed(v);
+                    await audioService.setSpeed(v); // Cambia velocidad
                     if (mounted) setState(() {});
                   },
                 ),
@@ -165,40 +155,38 @@ class _AudioScreenState extends State<AudioScreen> {
           ),
         ),
 
-        /// Botón para añadir canciones (requisito añadir)
-        Padding(
+        Padding( // Botón añadir canción
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: ElevatedButton.icon(
-            onPressed: addDummySong,
-            icon: const Icon(Icons.add),
-            label: const Text('Afegir cançó a la llista'),
+            onPressed: addDummySong, // Acción
+            icon: const Icon(Icons.add), // Icono
+            label: const Text('Afegir cançó a la llista'), // Texto
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 8), // Espacio
 
-        /// Lista scrollable
-        Expanded(
+        Expanded( // Lista de canciones
           child: ListView.builder(
-            itemCount: playlist.length,
+            itemCount: playlist.length, // Número de elementos
             itemBuilder: (_, i) {
               return ListTile(
-                title: Text(playlist[i].title),
+                title: Text(playlist[i].title), // Título
                 leading: Icon(
                   i == audioService.currentIndex
                       ? Icons.play_arrow
                       : Icons.music_note,
                 ),
                 onTap: () async {
-                  await audioService.playIndex(i);
+                  await audioService.playIndex(i); // Reproduce canción
                   if (mounted) setState(() {});
                 },
                 trailing: IconButton(
-                  tooltip: 'Eliminar',
-                  icon: const Icon(Icons.delete),
+                  tooltip: 'Eliminar', // Tooltip
+                  icon: const Icon(Icons.delete), // Icono borrar
                   onPressed: () {
                     setState(() {
-                      audioService.removeAt(i);
+                      audioService.removeAt(i); // Elimina canción
                     });
                   },
                 ),

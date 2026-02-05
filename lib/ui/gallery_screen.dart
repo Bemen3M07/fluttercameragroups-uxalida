@@ -1,8 +1,8 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import '../services/image_service.dart';
+import 'dart:io'; // Manejo de archivos
+import 'package:flutter/material.dart'; // Widgets Flutter
+import '../services/image_service.dart'; // Servicio imágenes
 
-class GalleryScreen extends StatefulWidget {
+class GalleryScreen extends StatefulWidget { // Pantalla galería
   const GalleryScreen({super.key});
 
   @override
@@ -10,20 +10,19 @@ class GalleryScreen extends StatefulWidget {
 }
 
 class _GalleryScreenState extends State<GalleryScreen> {
-  final ImageService imageService = ImageService();
-  List<File> images = [];
+  final ImageService imageService = ImageService(); // Servicio imágenes
+  List<File> images = []; // Lista de imágenes
 
-  // Selección robusta: por path (File no compara bien)
-  final Set<String> selectedPaths = {};
+  final Set<String> selectedPaths = {}; // Rutas seleccionadas
 
   @override
   void initState() {
     super.initState();
-    loadImages();
+    loadImages(); // Carga imágenes
   }
 
   Future<void> loadImages() async {
-    images = await imageService.loadImages();
+    images = await imageService.loadImages(); // Obtiene imágenes
     if (!mounted) return;
     setState(() {});
   }
@@ -31,7 +30,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) {
-      return const Center(child: Text('No hi ha imatges'));
+      return const Center(child: Text('No hi ha imatges')); // Sin imágenes
     }
 
     return Column(
@@ -62,8 +61,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                             ),
                           );
 
-                          // opcional: limpiar selección
-                          setState(() => selectedPaths.clear());
+                          setState(() => selectedPaths.clear()); // Limpia selección
                         },
                 ),
               ),
@@ -71,36 +69,37 @@ class _GalleryScreenState extends State<GalleryScreen> {
               IconButton(
                 tooltip: 'Recarregar',
                 icon: const Icon(Icons.refresh),
-                onPressed: loadImages,
+                onPressed: loadImages, // Recarga imágenes
               ),
             ],
           ),
         ),
         Expanded(
           child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, // 3 columnas
             ),
             itemCount: images.length,
             itemBuilder: (_, i) {
-              final img = images[i];
-              final path = img.path;
-              final isSelected = selectedPaths.contains(path);
+              final img = images[i]; // Imagen actual
+              final path = img.path; // Ruta
+              final isSelected = selectedPaths.contains(path); // Estado selección
 
               return GestureDetector(
                 onTap: () {
                   setState(() {
                     if (isSelected) {
-                      selectedPaths.remove(path);
+                      selectedPaths.remove(path); // Deselecciona
                     } else {
-                      selectedPaths.add(path);
+                      selectedPaths.add(path); // Selecciona
                     }
                   });
                 },
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(img, fit: BoxFit.cover),
+                    Image.file(img, fit: BoxFit.cover), // Muestra imagen
                     if (isSelected)
                       const Positioned(
                         right: 6,

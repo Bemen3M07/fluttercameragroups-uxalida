@@ -1,131 +1,121 @@
-import 'dart:math';
-import 'package:audioplayers/audioplayers.dart';
-import '../models/audio_model.dart';
+import 'dart:math'; // Se usa para generar números aleatorios
+import 'package:audioplayers/audioplayers.dart'; // Librería para reproducir audio
+import '../models/audio_model.dart'; // Importa el modelo de audio
 
-/// Servicio centralizado del reproductor de audio
-class AudioService {
-  final AudioPlayer _player = AudioPlayer();
+class AudioService { // Servicio centralizado para gestionar el audio
+  final AudioPlayer _player = AudioPlayer(); // Instancia del reproductor de audio
 
-  List<AudioModel> playlist = [];
-  int currentIndex = 0;
+  List<AudioModel> playlist = []; // Lista de canciones
+  int currentIndex = 0; // Índice de la canción actual
 
-  bool isPlaying = false;
-  bool randomMode = false;
-  bool infiniteMode = false;
-  double speed = 1.0;
+  bool isPlaying = false; // Indica si se está reproduciendo audio
+  bool randomMode = false; // Modo aleatorio
+  bool infiniteMode = false; // Modo reproducción infinita
+  double speed = 1.0; // Velocidad de reproducción
 
-  Duration currentPosition = Duration.zero;
-  Duration totalDuration = Duration.zero;
+  Duration currentPosition = Duration.zero; // Posición actual del audio
+  Duration totalDuration = Duration.zero; // Duración total del audio
 
-  AudioService() {
-    _player.onPositionChanged.listen((p) {
-      currentPosition = p;
+  AudioService() { // Constructor del servicio
+    _player.onPositionChanged.listen((p) { // Escucha cambios de posición
+      currentPosition = p; // Actualiza la posición actual
     });
 
-    _player.onDurationChanged.listen((d) {
-      totalDuration = d;
+    _player.onDurationChanged.listen((d) { // Escucha cambios de duración
+      totalDuration = d; // Guarda la duración total
     });
 
-    _player.onPlayerComplete.listen((_) async {
-      if (infiniteMode) {
-        await next();
+    _player.onPlayerComplete.listen((_) async { // Cuando termina el audio
+      if (infiniteMode) { // Si el modo infinito está activado
+        await next(); // Reproduce la siguiente canción
       }
     });
   }
 
-  void setPlaylist(List<AudioModel> list) {
-    playlist = list;
+  void setPlaylist(List<AudioModel> list) { // Establece la lista de reproducción
+    playlist = list; // Asigna la lista recibida
   }
 
-  /// Reproduce un elemento de la lista
-  Future<void> playIndex(int index) async {
-    if (playlist.isEmpty) return;
+  Future<void> playIndex(int index) async { // Reproduce una canción concreta
+    if (playlist.isEmpty) return; // Si no hay canciones, sale
 
-    currentIndex = index;
+    currentIndex = index; // Actualiza el índice actual
 
-    await _player.play(
-      AssetSource(playlist[index].assetPath),
+    await _player.play( // Reproduce el audio
+      AssetSource(playlist[index].assetPath), // Usa la ruta del asset
     );
 
-    await _player.setPlaybackRate(speed);
-    isPlaying = true;
+    await _player.setPlaybackRate(speed); // Aplica la velocidad actual
+    isPlaying = true; // Marca que se está reproduciendo
   }
 
-  Future<void> togglePlay() async {
-    if (isPlaying) {
-      await _player.pause();
-      isPlaying = false;
+  Future<void> togglePlay() async { // Alterna play / pause
+    if (isPlaying) { // Si está sonando
+      await _player.pause(); // Pausa el audio
+      isPlaying = false; // Actualiza estado
     } else {
-      await playIndex(currentIndex);
+      await playIndex(currentIndex); // Reproduce la canción actual
     }
   }
 
-  /// Siguiente pista
-  Future<void> next() async {
-    if (playlist.isEmpty) return;
+  Future<void> next() async { // Reproduce la siguiente canción
+    if (playlist.isEmpty) return; // Si no hay canciones, sale
 
-    if (randomMode) {
-      currentIndex = Random().nextInt(playlist.length);
+    if (randomMode) { // Si está en modo aleatorio
+      currentIndex = Random().nextInt(playlist.length); // Índice aleatorio
     } else {
-      currentIndex = (currentIndex + 1) % playlist.length;
+      currentIndex = (currentIndex + 1) % playlist.length; // Siguiente en orden
     }
 
-    await playIndex(currentIndex);
+    await playIndex(currentIndex); // Reproduce la canción seleccionada
   }
 
-  /// Pista anterior
-  Future<void> previous() async {
-    if (playlist.isEmpty) return;
+  Future<void> previous() async { // Reproduce la canción anterior
+    if (playlist.isEmpty) return; // Si no hay canciones, sale
 
     currentIndex =
-        (currentIndex - 1 + playlist.length) % playlist.length;
+        (currentIndex - 1 + playlist.length) % playlist.length; // Índice anterior
 
-    await playIndex(currentIndex);
+    await playIndex(currentIndex); // Reproduce la canción
   }
 
-  /// Mover posición
-  Future<void> seek(Duration position) async {
-    await _player.seek(position);
+  Future<void> seek(Duration position) async { // Mueve la posición del audio
+    await _player.seek(position); // Cambia la posición
   }
 
-  /// Avanzar 10 segundos
-  Future<void> forward10() async {
-    final newPos = currentPosition + const Duration(seconds: 10);
-    await seek(newPos);
+  Future<void> forward10() async { // Avanza 10 segundos
+    final newPos = currentPosition + const Duration(seconds: 10); // Nueva posición
+    await seek(newPos); // Aplica el cambio
   }
 
-  /// Retroceder 10 segundos
-  Future<void> backward10() async {
-    final newPos = currentPosition - const Duration(seconds: 10);
-    await seek(newPos < Duration.zero ? Duration.zero : newPos);
+  Future<void> backward10() async { // Retrocede 10 segundos
+    final newPos = currentPosition - const Duration(seconds: 10); // Nueva posición
+    await seek(newPos < Duration.zero ? Duration.zero : newPos); // Evita negativos
   }
 
-  /// Cambiar velocidad
-  Future<void> setSpeed(double value) async {
-    speed = value;
-    await _player.setPlaybackRate(value);
+  Future<void> setSpeed(double value) async { // Cambia la velocidad
+    speed = value; // Guarda la velocidad
+    await _player.setPlaybackRate(value); // Aplica la velocidad
   }
 
-  /// Añadir canción a la lista
-  void add(AudioModel model) {
-    playlist.add(model);
+  void add(AudioModel model) { // Añade una canción a la lista
+    playlist.add(model); // Agrega el modelo
   }
 
-  /// Eliminar canción de la lista
-  void removeAt(int index) {
-    if (index < 0 || index >= playlist.length) return;
+  void removeAt(int index) { // Elimina una canción por índice
+    if (index < 0 || index >= playlist.length) return; // Validación
 
-    if (index == currentIndex && isPlaying) {
-      _player.stop();
-      isPlaying = false;
+    if (index == currentIndex && isPlaying) { // Si se elimina la actual
+      _player.stop(); // Detiene el audio
+      isPlaying = false; // Actualiza estado
     }
 
-    playlist.removeAt(index);
+    playlist.removeAt(index); // Elimina la canción
 
-    if (currentIndex >= playlist.length) {
-      currentIndex = 0;
+    if (currentIndex >= playlist.length) { // Ajusta índice si hace falta
+      currentIndex = 0; // Vuelve al inicio
     }
   }
 
-  AudioPlayer get player => _player;
+  AudioPlayer get player => _player; // Devuelve el reproductor
 }
