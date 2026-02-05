@@ -77,15 +77,15 @@ class AudioService {
     seek(currentPosition + const Duration(seconds: 10));
   }
 
-    Future<void> backward10() async {
+  Future<void> backward10() async {
     final newPos = currentPosition - const Duration(seconds: 10);
     await seek(newPos < Duration.zero ? Duration.zero : newPos);
   }
-
-
 
   Future<void> setSpeed(double value) async {
     speed = value;
     await _player.setPlaybackRate(value);
   }
+
+  AudioPlayer get player => _player;
 }
